@@ -2,5 +2,5 @@
 **.iml
 .env
 .idea
-.uploaded_files
+uploaded_files
 __pycache__/
