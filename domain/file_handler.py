@@ -10,8 +10,6 @@ from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
 from matplotlib import pyplot as plt
 
 from app.settings import FILE_STORAGE
-from domain.blockref import Blockref
-
 
 
 class FileHandler:
@@ -20,47 +18,58 @@ class FileHandler:
     def __init__(self, file_repository: FILE_STORAGE):
         self.file_repository = file_repository
 
-    def handle_save(self, file: object):
-        # dxf_file = DxfFile(file)
-        # dxf_file.save_in_storage(FILE_STORAGE)
-        # return dxf_file.file_id + ".dxf"
+    def handle_upload(self, file: object):
+
+        # Generate names and build save paths
+        original_filename = os.path.splitext(file.filename)[0] + os.path.splitext(file.filename)[1]
         file_id = str(uuid.uuid1())
         new_filename = file_id + ".dxf"
         save_file_path = FILE_STORAGE
         uploaded_files_dir = os.path.join(pathlib.Path().absolute() / save_file_path)
         uploaded_file_path = os.path.join(uploaded_files_dir, new_filename)
+
+        # Todo: catch exceptions
         if not os.path.exists(uploaded_files_dir):
             os.makedirs(uploaded_files_dir)
         open_folder = open(uploaded_file_path, 'wb+')
         shutil.copyfileobj(file.file, open_folder)
         open_folder.close()
-        return new_filename
 
-    def handle_parse(self, file_id: str):
+        # dxf_file = DxfFile(original_filename)
+        return original_filename, file_id
+
+    def get_blocks_from_file(self, file_id: str, qry: str) -> object:
         file_path = FILE_STORAGE + file_id + ".dxf"
+
         doc = ezdxf.readfile(file_path)
         msp = doc.modelspace()
-        all_blocks = []
-        attribute_list = []
 
-        for insert in msp.query('INSERT[name=="LUMINARIA"]'):
-            print(" ------------------------------------------------------------------------------------ ")
+        all_blocks = []
+        block_attributes_tuple_list = []
+
+        query_string = 'INSERT[name=="' + qry + '"]'
+
+        # for insert in msp.query('INSERT[name=="LUMINARIA"]'):
+        for insert in msp.query(query_string):
             print(insert)
-            # attribute_list.append([(attrib.dxf.tag, attrib.dxf.text) for attrib in insert.attribs])
-            # print(attribute_list)
+
+            # append the type of blocks we are reading (LUMINARIA in this case)
+            block_attributes_tuple_list.append(("name", qry))
+            block_attributes_tuple_list.append(("INSERT_id_ref", str(insert))) # this is if we want to keep track of the reference to the .dxf file
+
+            # block_attributes list
             for attrib in insert.attribs:
                 attribute_name = attrib.dxf.tag
                 attribute_value = attrib.dxf.text
-                # attribute = Attribute(attribute_name, attribute_value)
-                attribute = (attribute_name, attribute_value)
-                attribute_list.append(attribute)
+                attribute_tuple = (attribute_name, attribute_value)
+                block_attributes_tuple_list.append(attribute_tuple)
 
-            # todo: name should be the block id? ex. LAMP code
-            blockref = Blockref(name="LUMINARIA", attribute_list=attribute_list)
-            print(blockref.name)
-            print(blockref.attributes)
-            attribute_list.clear()
-            all_blocks.append(blockref)
+            # convert attribute_list into dictionary
+            attribute_dict = dict(block_attributes_tuple_list)
+            print(attribute_dict)
+
+            block_attributes_tuple_list.clear()
+            all_blocks.append(attribute_dict)
 
         return all_blocks
 
@@ -92,6 +101,5 @@ class FileHandler:
             img_name = re.findall("(\S+)\.", file_path)  # select the image name that is the same as the dxf file name
             img_path = ''.join(img_name) + img_format  # concatenate list and string
             fig.savefig(img_path, dpi=img_res)
-            print(file_path, " Converted Successfully")
+            # print(file_path, " Converted Successfully")
             return img_path
-
