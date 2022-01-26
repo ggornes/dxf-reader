@@ -3,4 +3,5 @@
 .env
 .idea
 uploaded_files
+firebase
 __pycache__/
