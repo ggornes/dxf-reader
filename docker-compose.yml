@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  dxf-reader-api:
+    container_name: dxf-reader
+    build:
+      context: .
+      dockerfile: ./docker/app.dockerfile
+    volumes:
+      - .:/dxf-reader
+    command: uvicorn rest.server:app --reload --workers 1 --host 0.0.0.0 --port 8080
+#    env_file:
+#      - ./env
+    ports:
+      - 8080:8080
+
+
+  mongodb_container:
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb_data_container:/data/db
+
+  adminer:
+    container_name: adminer
+    image: adminer
+    restart: always
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mongodb_container
+
+volumes:
+  mongodb_data_container:
