@@ -8,7 +8,7 @@ class BaseRepository:
 
 
 class FirebaseDocumentRepository(BaseRepository, DocumentRepository):
-    def save(self, dxf_document: DxfDocument) -> None:
+    def save(self, dxf_document: DxfDocument) -> object:
         file_id = dxf_document.file_id
         original_filename = dxf_document.original_filename
         blocks = dxf_document.blocks
@@ -25,6 +25,19 @@ class FirebaseDocumentRepository(BaseRepository, DocumentRepository):
         doc_dict = doc.to_dict()
         # dxf_document = DxfDocument(doc_dict["file_id"], doc_dict["original_filename"], doc_dict["blocks"])
         return doc_dict
+
+    def find_all(self) -> list:
+        docs = self.db.collection(u'documents').stream()
+        docs_dict = []
+        for doc in docs:
+            doc_dict = doc.to_dict()
+            docs_dict.append(doc_dict)
+        return docs_dict
+
+    def find_by_file_id(self, file_id: str) -> object:
+        doc = self.db.collection(u'documents').where(u'file_id', u'==', file_id).stream()
+        doct_dict = doc.to_dict()
+        return doct_dict
 
     def update(self, dxf_document: DxfDocument) -> object:
         file_id = dxf_document.file_id
